@@ -17,5 +17,7 @@ gravatar account attached.
 
 ## Resources
 
+* http://golang.org/pkg/crypto/
+* http://golang.org/pkg/image/
 * http://en.wikipedia.org/wiki/Identicon
 * http://haacked.com/archive/2007/01/22/Identicons_as_Visual_Fingerprints.aspx/
