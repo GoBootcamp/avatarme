@@ -17,23 +17,23 @@ const (
 )
 
 var palette map[byte]color.RGBA = map[byte]color.RGBA{
-		48:  color.RGBA{255, 255, 255, 255}, // 0 => white,
-		49:  color.RGBA{213, 0, 0, 255}, 		 // 1 => red,
-		50:  color.RGBA{255, 255, 255, 255}, // 2 => white,
-		51:  color.RGBA{255, 255, 255, 255}, // 3 => white,
-		52:  color.RGBA{255, 76, 0, 255}, 	 // 4 => orange,
-		53:  color.RGBA{255, 255, 255, 255}, // 5 => white,
-		54:  color.RGBA{255, 255, 255, 255}, // 6 => white,
-		55:  color.RGBA{255, 255, 11, 255},  // 7 => yellow,
-		56:  color.RGBA{255, 76, 0, 255},    // 8 => orange,
-		57:  color.RGBA{213, 0, 0, 255},     // 9 => red,
-		97:  color.RGBA{239, 0, 113, 255},   // a => magenta,
-		98:  color.RGBA{54, 0, 151, 255},    // b => purple,
-		99:  color.RGBA{0, 0, 205, 255},     // c => blue,
-		100: color.RGBA{0, 152, 232, 255},   // d => cyan,
-		101: color.RGBA{26, 176, 0, 255},    // e => green,
-		102: color.RGBA{0, 0, 0, 255},    	 // f => black,
-	}
+	48:  color.RGBA{255, 255, 255, 255}, // 0 => white,
+	49:  color.RGBA{213, 0, 0, 255},     // 1 => red,
+	50:  color.RGBA{255, 255, 255, 255}, // 2 => white,
+	51:  color.RGBA{255, 255, 255, 255}, // 3 => white,
+	52:  color.RGBA{255, 76, 0, 255},    // 4 => orange,
+	53:  color.RGBA{255, 255, 255, 255}, // 5 => white,
+	54:  color.RGBA{255, 255, 255, 255}, // 6 => white,
+	55:  color.RGBA{255, 255, 11, 255},  // 7 => yellow,
+	56:  color.RGBA{255, 76, 0, 255},    // 8 => orange,
+	57:  color.RGBA{213, 0, 0, 255},     // 9 => red,
+	97:  color.RGBA{239, 0, 113, 255},   // a => magenta,
+	98:  color.RGBA{54, 0, 151, 255},    // b => purple,
+	99:  color.RGBA{0, 0, 205, 255},     // c => blue,
+	100: color.RGBA{0, 152, 232, 255},   // d => cyan,
+	101: color.RGBA{26, 176, 0, 255},    // e => green,
+	102: color.RGBA{0, 0, 0, 255},       // f => black,
+}
 
 // Gets a MD5 hash from the given string limited to exactly 64 chars.
 //
@@ -49,11 +49,11 @@ func getMD5(s string) string {
 func buildImage(hash string) *image.RGBA {
 	img := image.NewRGBA(image.Rect(0, 0, avatarSide*scale, avatarSide*scale))
 
-	for multiplier := 0; multiplier	 < scale; multiplier++ {
+	for multiplier := 0; multiplier < scale; multiplier++ {
 		for x := 0; x < avatarSide; x++ {
 			for y := 0; y < avatarSide; y++ {
-				scaledX := x + x * multiplier
-				scaledY := y + y * multiplier
+				scaledX := x + x*multiplier
+				scaledY := y + y*multiplier
 				color := palette[hash[x*avatarSide+y]]
 				fillPixel(img, scaledX, scaledY, color)
 			}
@@ -91,7 +91,7 @@ func exportImage(img *image.RGBA) {
 
 func main() {
 	text := os.Args[1]
- 	hash := getMD5(text)
+	hash := getMD5(text)
 	img := buildImage(hash)
 	exportImage(img)
 }
