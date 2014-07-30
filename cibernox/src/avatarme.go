@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"image"
 	"image/color"
+	"image/draw"
 	"image/png"
 	"os"
 )
@@ -13,7 +14,7 @@ const (
 	enlarger        string = "md5-enlarger"
 	avatarSide      int    = 8
 	signatureLength int    = avatarSide * avatarSide
-	scale           int    = 32
+	scale           int    = 512
 )
 
 var palette map[byte]color.RGBA = map[byte]color.RGBA{
@@ -44,19 +45,41 @@ func getMD5(s string) string {
 	return fmt.Sprintf("%x", chunkedSignature)
 }
 
-// Generates a image.RGBA of colors given a hexadecimal string
+// Generates a image.RGBA of colors given a hexadecimal string.
 //
-func buildImage(hash string) *image.RGBA {
+// Time required for compile and generate an image 64x64:  		 0.175s
+// Time required for compile and generate an image 4096x4096:  1.644s
+//
+func buildImagePixelByPixel(hash string) *image.RGBA {
 	img := image.NewRGBA(image.Rect(0, 0, avatarSide*scale, avatarSide*scale))
 
-	for multiplier := 0; multiplier < scale; multiplier++ {
-		for x := 0; x < avatarSide; x++ {
-			for y := 0; y < avatarSide; y++ {
-				scaledX := x + x*multiplier
-				scaledY := y + y*multiplier
-				color := palette[hash[x*avatarSide+y]]
-				fillPixel(img, scaledX, scaledY, color)
-			}
+	for x := 0; x < avatarSide; x++ {
+		for y := 0; y < avatarSide; y++ {
+			fillPixel(img, x*scale, y*scale, palette[hash[x*avatarSide+y]])
+		}
+	}
+
+	return img
+}
+
+// Generates a image.RGBA of colors given a hexadecimal string. It draws solid rectangles
+// instead of iterate over all the pixels of the image.
+// Due to this, it always performs the same number of painting operations (64) and
+// times are much more constant.
+//
+// Time required for compile and generate an image 64x64:  		 0.176s
+// Time required for compile and generate an image 4096x4096:  0.784s
+//
+func buildImageDrawing(hash string) *image.RGBA {
+	img := image.NewRGBA(image.Rect(0, 0, avatarSide*scale, avatarSide*scale))
+
+	for x := 0; x < avatarSide; x++ {
+		for y := 0; y < avatarSide; y++ {
+			color := palette[hash[x*avatarSide+y]]
+			startPoint := image.Point{x*scale, y*scale}
+			endPoint := image.Point{x*scale + scale, y*scale + scale}
+			rectangle := image.Rectangle{startPoint, endPoint}
+			draw.Draw(img, rectangle, &image.Uniform{color}, image.ZP, draw.Src)
 		}
 	}
 
@@ -92,6 +115,7 @@ func exportImage(img *image.RGBA) {
 func main() {
 	text := os.Args[1]
 	hash := getMD5(text)
-	img := buildImage(hash)
+	// img := buildImagePixelByPixel(hash)
+	img := buildImageDrawing(hash)
 	exportImage(img)
 }
