@@ -3,18 +3,24 @@ package main
 import (
 	"crypto/md5"
 	"fmt"
+	"github.com/codegangsta/cli"
 	"image"
 	"image/color"
 	"image/draw"
+	"image/jpeg"
 	"image/png"
 	"os"
+	"regexp"
 )
 
 const (
 	enlarger        string = "md5-enlarger"
 	avatarSide      int    = 8
 	signatureLength int    = avatarSide * avatarSide
-	scale           int    = 512
+)
+
+var (
+	extensionRegexp *regexp.Regexp = regexp.MustCompile(`\.(png|jpe?g)$`)
 )
 
 var palette map[byte]color.RGBA = map[byte]color.RGBA{
@@ -39,27 +45,12 @@ var palette map[byte]color.RGBA = map[byte]color.RGBA{
 // Gets a MD5 hash from the given string limited to exactly 64 chars.
 //
 func getMD5(s string) string {
-	hasher := md5.New()
-	byteSignature := hasher.Sum([]byte(s + enlarger))
-	chunkedSignature := byteSignature[0 : signatureLength/2]
-	return fmt.Sprintf("%x", chunkedSignature)
-}
-
-// Generates a image.RGBA of colors given a hexadecimal string.
-//
-// Time required for compile and generate an image 64x64:  		 0.175s
-// Time required for compile and generate an image 4096x4096:  1.644s
-//
-func buildImagePixelByPixel(hash string) *image.RGBA {
-	img := image.NewRGBA(image.Rect(0, 0, avatarSide*scale, avatarSide*scale))
-
-	for x := 0; x < avatarSide; x++ {
-		for y := 0; y < avatarSide; y++ {
-			fillPixel(img, x*scale, y*scale, palette[hash[x*avatarSide+y]])
-		}
+	length := len(s)
+	if length < 16 {
+		s = s + enlarger[0:16-length]
 	}
-
-	return img
+	hasher := md5.New()
+	return fmt.Sprintf("%x", hasher.Sum([]byte(s)))
 }
 
 // Generates a image.RGBA of colors given a hexadecimal string. It draws solid rectangles
@@ -67,16 +58,16 @@ func buildImagePixelByPixel(hash string) *image.RGBA {
 // Due to this, it always performs the same number of painting operations (64) and
 // times are much more constant.
 //
-// Time required for compile and generate an image 64x64:  		 0.176s
-// Time required for compile and generate an image 4096x4096:  0.784s
+// Time required for generate an image 64x64:  		 0.005s
+// Time required for generate an image 4096x4096:  0.613s
 //
-func buildImageDrawing(hash string) *image.RGBA {
+func buildImage(hash string, scale int) *image.RGBA {
 	img := image.NewRGBA(image.Rect(0, 0, avatarSide*scale, avatarSide*scale))
 
 	for x := 0; x < avatarSide; x++ {
 		for y := 0; y < avatarSide; y++ {
 			color := palette[hash[x*avatarSide+y]]
-			startPoint := image.Point{x*scale, y*scale}
+			startPoint := image.Point{x * scale, y * scale}
 			endPoint := image.Point{x*scale + scale, y*scale + scale}
 			rectangle := image.Rectangle{startPoint, endPoint}
 			draw.Draw(img, rectangle, &image.Uniform{color}, image.ZP, draw.Src)
@@ -86,36 +77,40 @@ func buildImageDrawing(hash string) *image.RGBA {
 	return img
 }
 
-// Fill the virtual pixel with the given coordinates with the given color.
+// Exports the given image in the given path.
 //
-// Images always are a 8x8 virtual image, but the output might be bigger.
-// Per example, if we want a 512x512 avatar, we set the `scale` constant to 64.
-// That way each virtual pixel will be a square of 32x32, resulting in a 512x512 image.
-//
-func fillPixel(img *image.RGBA, x, y int, color color.RGBA) {
-	for i := 0; i < scale; i++ {
-		for j := 0; j < scale; j++ {
-			img.Set(x+i, y+j, color)
-		}
-	}
-}
-
-// Exports the given image as a PNG file with the name `output.png`
-//
-func exportImage(img *image.RGBA) {
-	file, err := os.Create("output.png")
+func exportImage(img *image.RGBA, filepath string) {
+	file, err := os.Create(filepath)
 	if err != nil {
 		fmt.Println("Error creating file")
 	}
 	defer file.Close()
 
-	png.Encode(file, img)
+	extension := extensionRegexp.FindString(filepath)
+
+	if extension == ".png" {
+		png.Encode(file, img)
+	} else if extension == ".jpg" || extension == ".jpeg" {
+		jpeg.Encode(file, img, &jpeg.Options{95})
+	} else {
+		fmt.Println("Invalid extension")
+	}
 }
 
 func main() {
-	text := os.Args[1]
-	hash := getMD5(text)
-	// img := buildImagePixelByPixel(hash)
-	img := buildImageDrawing(hash)
-	exportImage(img)
+	app := cli.NewApp()
+	app.Name = "Avatarme"
+	app.Usage = "Generates an unique avatar for the given string"
+	app.Flags = []cli.Flag{
+		cli.StringFlag{Name: "output, o", Value: "output.png", Usage: "path of the output file"},
+		cli.IntFlag{Name: "size, s", Value: 256, Usage: "side length of the generated image (in px). Will be ronded to a multiple of 8"},
+	}
+	app.Action = func(c *cli.Context) {
+		text := c.Args()[0]
+		hash := getMD5(text)
+		img := buildImage(hash, c.Int("size")/8)
+		exportImage(img, c.String("output"))
+	}
+
+	app.Run(os.Args)
 }
