@@ -4,12 +4,6 @@ import (
   "crypto/md5"
   "io"
   "fmt"
-  "os"
-  "github.com/duranmla/clirescue/cmdutil"
-)
-
-var (
-  Stdout *os.File = os.Stdout
 )
 
 // the idea is that the same identicon is going to be retrieved using email, ip or token
@@ -23,15 +17,6 @@ func New(name, email string) *User {
 	user := &User{name: name, email: email}
   user.hash = user._getStringMD5(email)
   return user
-}
-
-func RequestCredentials() (name, email string){
-  fmt.Fprint(Stdout, "name: ")
-  name = cmdutil.ReadLine()
-  fmt.Fprint(Stdout, "email: ")
-  email = cmdutil.ReadLine()
-
-  return name, email
 }
 
 func (user *User) _getStringMD5(str string) string {
