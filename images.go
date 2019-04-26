@@ -5,6 +5,7 @@ import (
   "image"
   "image/color"
   "image/png"
+  "bytes"
 )
 
 // genImg uses seed to generate 5x5 png image that provides symetric Identicon
@@ -13,7 +14,7 @@ func genImg(u uint64) []byte {
   img := image.NewRGBA(image.Rect(0, 0, height, width))
   
   shape := deduceShape(u)
-  fgColor, bgColor := deduceColors(u)
+  fgColor, bgColor := getColors(u)
   
   var currentColor color.RGBA
   for y,x := range shape {
@@ -45,9 +46,9 @@ func deduceShape(u uint64) [5][5]int {
       basicShape[x][y] = 1
     }
     
-    x++
-    if x > 2 { y++; x = 0 }
-    if y > 3 { y = 0 }
+    y++
+    if y > 3 { x++; y = 0 }
+    if x > 3 { x = 0 }
   }
   
   for y, x := range basicShape[0] {
@@ -61,7 +62,7 @@ func deduceShape(u uint64) [5][5]int {
   return basicShape
 }
 
-// getColors returns two RGB sets, foreground color uses first 24bits while background color uses last 24bits.
+// getColors returns two RGB sets, foreground color uses first 24bits while background color uses next 24bits.
 func getColors(u uint64) (color.RGBA, color.RGBA) {
   fg := (0xFFFFFF & u)
   bg := (0xFFFFFF000000 & u) >> 24
