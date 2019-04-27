@@ -1,23 +1,35 @@
-# AvatarMe
+AvatarMe
+========
 
-## Skills developed
+[![GoDoc](https://godoc.org/github.com/SaraTrawnik/avatarme?status.svg)](https://godoc.org/github.com/SaraTrawnik/avatarme)
+[![GoReportCard](https://goreportcard.com/badge/SaraTrawnik/avatarme)](https://goreportcard.com/report/SaraTrawnik/avatarme)
 
-* Hashing
-* image manipulation
+Library for github style Identicon generation.
 
-## Assigment
+## Installation
 
-Given a personal information such as an email address, IP address, or a
-public key, the program you will write needs to generate a unique avatar.
-Imagine that you are building a new application and you want all of your
-users to have a default and unique avatar. The package you will write
-will allow the generation of such avatars. GitHub recently used such an
-approach and generates an identicon for all new users who don't have a
-gravatar account attached.
+Get
+```
+go get -u github.com/SaraTrawnik/avatarme
+```
+Test
+```
+go test -cover github.com/SaraTrawnik/avatarme
+```
 
-## Resources
+## Usage
 
-* http://golang.org/pkg/crypto/
-* http://golang.org/pkg/image/
-* http://en.wikipedia.org/wiki/Identicon
-* http://haacked.com/archive/2007/01/22/Identicons_as_Visual_Fingerprints.aspx/
+```go
+package main
+
+import (
+  "github.com/SaraTrawnik/avatarme"
+  "fmt"
+)
+
+func main () {
+  ident := avatarme.New([]byte("test value"), "filename")
+  fmt.Println(ident.Base64())
+  ident.Draw() // saves resulting png image named "filename" to current directory
+}
+```
