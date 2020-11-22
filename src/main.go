@@ -75,6 +75,7 @@ func saveImage(img *image.RGBA, filename string) {
 
 }
 
+// Run it as: go run ./main.go -input=Awesome -size 256 -output image -blocks 8
 func main() {
 	inputString := flag.String("input", "Cool", "value to be hashed and generate identicon with")
 	outputFile := flag.String("output", "image", "image file name")
