@@ -11,7 +11,7 @@ import (
 	"os"
 )
 
-const rows, cols = 8, 8
+const rows, cols = 8, 9
 const elemSizeInPx = 20
 
 type Identicon struct {

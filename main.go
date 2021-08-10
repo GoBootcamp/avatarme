@@ -7,10 +7,10 @@ import (
 )
 
 func main() {
-	if len(os.Args) < 3 {
-		fmt.Println("You need to pass the textual identifier and the output file name as arguments.")
+	if len(os.Args) < 2 {
+		fmt.Println("You need to pass the textual identifier as an argument.")
 		os.Exit(1)
 	}
 	identiconObj := identicon.New(os.Args[1])
-	identiconObj.MakeImageFromHash("output/" + os.Args[2])
+	identiconObj.MakeImageFromHash("output/" + os.Args[1] + ".png")
 }
