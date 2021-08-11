@@ -33,7 +33,7 @@ func New(identifier string) *Identicon {
 func (i Identicon) MakeImageFromHash(filePath string) {
 	var colorBytes [3]byte
 	copy(colorBytes[:], i.HashByteArray[:3])
-	foregroundColor, backgroundColor := getColors(i.HashByteArray[0], i.HashByteArray[1], i.HashByteArray[2])
+	foregroundColor, backgroundColor := getColorsFromBytes(i.HashByteArray[0], i.HashByteArray[1], i.HashByteArray[2])
 
 	canvas := image.NewRGBA(image.Rectangle{image.Point{0, 0}, image.Point{elemSizeInPx * cols, elemSizeInPx * rows}})
 	draw.Draw(canvas, canvas.Bounds(), &image.Uniform{backgroundColor}, image.Point{0, 0}, draw.Src)
@@ -53,7 +53,7 @@ func (i Identicon) MakeImageFromHash(filePath string) {
 	}
 }
 
-func getColors(r, g, b byte) (color.RGBA, color.RGBA) {
+func getColorsFromBytes(r, g, b byte) (color.RGBA, color.RGBA) {
 	foregroundColor := color.RGBA{r, g, b, 0xff}
 	var backgroundColor color.RGBA
 
@@ -70,7 +70,7 @@ func getColors(r, g, b byte) (color.RGBA, color.RGBA) {
 func byteSliceToBoolSlice(bytes []byte) []bool {
 	var result []bool
 	for _, myByte := range bytes {
-		for i := 7; i >= 0; i-- {
+		for i := 0; i <= 7; i++ {
 			result = append(result, myByte&(1<<i) > 0)
 		}
 	}
