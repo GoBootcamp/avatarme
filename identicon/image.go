@@ -58,7 +58,7 @@ func getColorsFromBytes(r, g, b byte) (color.RGBA, color.RGBA) {
 	var backgroundColor color.RGBA
 
 	// http://stackoverflow.com/a/3943023/112731 (contrast-background black or white)
-	if (0.299*float32(int(r)) + 0.587*float32(int(g)) + 0.114*float32(int(b))) > 186 {
+	if (0.299 * float32(int(r)) + 0.587 * float32(int(g)) + 0.114 * float32(int(b))) > 186 {
 		backgroundColor = color.RGBA{0, 0, 0, 0xff}
 	} else {
 		backgroundColor = color.RGBA{0xff, 0xff, 0xff, 0xff}

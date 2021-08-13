@@ -1,64 +1,87 @@
 package identicon
 
-import "testing"
+import (
+	"github.com/google/go-cmp/cmp"
+	"image/color"
+	"math/rand"
+	"testing"
+)
 
 func TestByteSliceToBoolSlice(t *testing.T) {
-	byteSlice := []byte{255, 0, 85, 170}
-	expectedBoolSlice := []bool{
-		true, true, true, true, true, true, true, true,
-		false, false, false, false, false, false, false, false,
-		true, false, true, false, true, false, true, false,
-		false, true, false, true, false, true, false, true,
-	}
-	result := byteSliceToBoolSlice(byteSlice)
-	if len(result) != 32 {
-		t.Errorf("length of input was %d, expected %d", len(result), 32)
+	testData := []struct {
+		input  []byte
+		expect []bool
+	}{
+		{
+			input: []byte{255, 0},
+			expect: []bool{
+				true, true, true, true, true, true, true, true,
+				false, false, false, false, false, false, false, false,
+			},
+		},
+		{
+			input: []byte{85, 170},
+			expect: []bool{
+				true, false, true, false, true, false, true, false,
+				false, true, false, true, false, true, false, true,
+			},
+		},
 	}
 
-	for k, v := range expectedBoolSlice {
-		if v != result[k] {
-			t.Errorf("%v, was expected to be %v", result, expectedBoolSlice)
+	for _, data := range testData {
+		result := byteSliceToBoolSlice(data.input)
+		if len(result) != len(data.expect) {
+			t.Errorf("length of input was %d, expected %d", len(result), len(data.expect))
+		}
+
+		for k, v := range data.expect {
+			if v != result[k] {
+				t.Errorf("%v, was expected to be %v", result, data.expect)
+			}
 		}
 	}
 }
 
-func TestGetColorsFromBytesReturnsCorrectForegroundColor(t *testing.T) {
-	result, _ := getColorsFromBytes(0, 0, 0)
-	if result.R != 0 || result.G != 0 || result.B != 0 {
-		t.Errorf("RGB values were %d, %d, %d, expected %d, %d, %d", result.R, result.G, result.B, 0, 0, 0)
-	}
-
-	result, _ = getColorsFromBytes(255, 255, 255)
-	if result.R != 255 || result.G != 255 || result.B != 255 {
-		t.Errorf("RGB values were %d, %d, %d, expected %d, %d, %d", result.R, result.G, result.B, 255, 255, 255)
-	}
-
-	result, _ = getColorsFromBytes(40, 80, 120)
-	if result.R != 40 || result.G != 80 || result.B != 120 {
-		t.Errorf("RGB values were %d, %d, %d, expected %d, %d, %d", result.R, result.G, result.B, 40, 80, 120)
+func TestGetColorsFromBytesReturnsSameValuesAsForegroundColor(t *testing.T) {
+	// 20 random sets of test data (0-255 for each respective RGB value)
+	for i := 0; i < 20; i++ {
+		r, g, b := byte(rand.Intn(255)), byte(rand.Intn(255)), byte(rand.Intn(255))
+		expectedColor := color.RGBA{r, g, b, 0xff}
+		result, _ := getColorsFromBytes(r, g, b)
+		if !cmp.Equal(result, expectedColor) {
+			t.Errorf("Foreground color was %#v, expected %#v", result, expectedColor)
+		}
 	}
 }
 
 func TestGetColorsFromBytesReturnsCorrectBackgroundColor(t *testing.T) {
-	// On the verge, but still black
-	_, result := getColorsFromBytes(168, 221, 55)
-	if result.R != 0 || result.G != 0 || result.B != 0 {
-		t.Errorf("RGB values were %d, %d, %d, expected %d, %d, %d", result.R, result.G, result.B, 0, 0, 0)
+	testData := []struct {
+		input  struct{ r, g, b byte }
+		expect color.RGBA
+	}{
+		{
+			// On the verge, but still black
+			input:  struct{ r, g, b byte }{168, 221, 55},
+			expect: color.RGBA{R: 0, G: 0, B: 0, A: 0xff},
+		},
+		{
+			// On the verge, but still white
+			input:  struct{ r, g, b byte }{168, 220, 55},
+			expect: color.RGBA{R: 255, G: 255, B: 255, A: 0xff},
+		},
+		{
+			input:  struct{ r, g, b byte }{255, 255, 255},
+			expect: color.RGBA{R: 0, G: 0, B: 0, A: 0xff},
+		},
+		{
+			input:  struct{ r, g, b byte }{0, 0, 0},
+			expect: color.RGBA{R: 255, G: 255, B: 255, A: 0xff},
+		},
 	}
-
-	// On the verge, but still white
-	_, result = getColorsFromBytes(168, 220, 55)
-	if result.R != 255 || result.G != 255 || result.B != 255 {
-		t.Errorf("RGB values were %d, %d, %d, expected %d, %d, %d", result.R, result.G, result.B, 255, 255, 255)
-	}
-
-	_, result = getColorsFromBytes(255, 255, 255)
-	if result.R != 0 || result.G != 0 || result.B != 0 {
-		t.Errorf("RGB values were %d, %d, %d, expected %d, %d, %d", result.R, result.G, result.B, 0, 0, 0)
-	}
-
-	_, result = getColorsFromBytes(0, 0, 0)
-	if result.R != 255 || result.G != 255 || result.B != 255 {
-		t.Errorf("RGB values were %d, %d, %d, expected %d, %d, %d", result.R, result.G, result.B, 255, 255, 255)
+	for _, data := range testData {
+		_, result := getColorsFromBytes(data.input.r, data.input.g, data.input.b)
+		if !cmp.Equal(data.expect, result) {
+			t.Errorf("Foreground color was %#v, expected %#v", result, data.expect)
+		}
 	}
 }
