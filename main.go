@@ -5,26 +5,37 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/kennygrant/sanitize"
+
 	"github.com/ymakhloufi/avatarme/identicon"
 )
 
+// ToDo: make output into file optional via flag and print into stdout by default to allow piping
+// ToDo: for optional filename, prompt if file exists, also provide force-flag for overwriting existing file
+// ToDo: allow to control complexity and image width vie CLI arg
 // ToDo: read up on docs and how to provide CLI help
-// ToDo: allow to control
+// ToDo: read up on info/debug logging
+// ToDo: read up on debugging/stepping-though code
 func main() {
 	if len(os.Args) < 2 {
 		fmt.Println("You need to pass the textual identifier as an argument.")
 		os.Exit(1)
 	}
-	identiconObj := identicon.New(os.Args[1])
+	identifier := os.Args[1]
+	identiconObj := identicon.New(identifier)
+	fileName := sanitize.BaseName(identifier)
+	outputPath, err := filepath.Abs(filepath.FromSlash("output/" + fileName + ".png"))
+	exitIfErr(err)
 
-	// ToDo: sanitize os.Args[1]
-	relativeFilePath := filepath.FromSlash("output/" + os.Args[1] + ".png")
-	if err := identiconObj.SavePngToDisk(relativeFilePath, identicon.ComplexityLevelMedium, 200); err != nil {
+	err = identiconObj.SavePngToDisk(outputPath, identicon.ComplexityLevelMedium, 200)
+	exitIfErr(err)
+
+	fmt.Printf("Identicon was written to %s\n", outputPath)
+}
+
+func exitIfErr(err error) {
+	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
-
-	cwd, _ := os.Getwd() // if error happens during Getwd(), we ignore it and just print the relative path
-	fullPath := filepath.Join(cwd, relativeFilePath)
-	fmt.Printf("Identicon was written to %s\n", fullPath)
 }

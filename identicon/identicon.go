@@ -11,7 +11,7 @@ import (
 	"os"
 )
 
-type ComplexityLevel int
+type ComplexityLevel uint8
 
 const (
 	// ComplexityLevelLowest ComplexityLevelLow ComplexityLevelMedium ComplexityLevelHigh ComplexityLevelUltra
@@ -79,7 +79,7 @@ func (i Identicon) SavePngToDisk(filePath string, level ComplexityLevel, widthIn
 
 	file, err := os.Create(filePath)
 	if err != nil {
-		return fmt.Errorf("error onening/creating png file on disk %s: %v", filePath, err)
+		return fmt.Errorf("error opening/creating png file on disk %s: %v", filePath, err)
 	}
 
 	if err = png.Encode(file, canvas); err != nil {

@@ -1,11 +1,15 @@
 package identicon
 
 import (
-	"github.com/google/go-cmp/cmp"
 	"image/color"
 	"math/rand"
 	"testing"
+
+	"github.com/google/go-cmp/cmp"
 )
+
+// ToDo: read up on mocking, write unit test(s) for drawSquares()
+// ToDo: read up on assertion frameworks, rewrite tests with such to make more concise/legible.
 
 func TestByteSliceToBoolSlice(t *testing.T) {
 	testData := []struct {
