@@ -1,4 +1,4 @@
-package identicon
+package ydenticon
 
 import (
 	"image/color"

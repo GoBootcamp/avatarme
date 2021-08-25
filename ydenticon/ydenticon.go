@@ -1,4 +1,4 @@
-package identicon
+package ydenticon
 
 import (
 	"crypto/sha256"
@@ -15,7 +15,7 @@ type ComplexityLevel uint8
 
 const (
 	// ComplexityLevelLowest ComplexityLevelLow ComplexityLevelMedium ComplexityLevelHigh ComplexityLevelUltra
-	/* Used as dimensions for the Identicon. SHA256 gives us 256 bits for uniqueness.
+	/* Used as dimensions for the image. SHA256 gives us 256 bits for uniqueness.
 	 * After determining the color (3 bytes = 24 bits) we have 232 bits left.
 	 * ComplexityLevelUltra uses 231 bits, so we would have 1 bit left to spare.
 	 * Lowest: 6x6   = Ceil(6/2) * 6   = 18 bits
@@ -31,18 +31,18 @@ const (
 	ComplexityLevelUltra
 )
 
-type Identicon struct {
+type Ydenticon struct {
 	Identifier                       string
 	hashByteArray                    [32]byte
 	canvasBitSlice                   []bool
 	foregroundColor, backgroundColor color.RGBA
 }
 
-func New(identifier string) *Identicon {
+func New(identifier string) *Ydenticon {
 	hashByteArray := sha256.Sum256([]byte(identifier))
 	foregroundColor, backgroundColor := getColorsFromBytes(hashByteArray[0], hashByteArray[1], hashByteArray[2])
 
-	return &Identicon{
+	return &Ydenticon{
 		Identifier:      identifier,
 		hashByteArray:   hashByteArray,
 		canvasBitSlice:  byteSliceToBoolSlice(hashByteArray[3:]),
@@ -63,7 +63,7 @@ func getColorsFromBytes(r, g, b byte) (foregroundColor color.RGBA, backgroundCol
 	return foregroundColor, backgroundColor
 }
 
-func (i Identicon) SavePngToDisk(filePath string, level ComplexityLevel, widthInPx int) error {
+func (i Ydenticon) SavePngToDisk(filePath string, level ComplexityLevel, widthInPx uint) error {
 	cols, rows := int(level), int(level) // slightly redundant, but we might want non-square-shaped images later.
 	elemSizeInPx := int(math.Ceil(float64(level) / float64(widthInPx)))
 	canvas := image.NewRGBA(

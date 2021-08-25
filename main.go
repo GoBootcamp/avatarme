@@ -1,13 +1,14 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"os"
 	"path/filepath"
 
 	"github.com/kennygrant/sanitize"
 
-	"github.com/ymakhloufi/avatarme/identicon"
+	"github.com/ymakhloufi/ydenticon/ydenticon"
 )
 
 // ToDo: make output into file optional via flag and print into stdout by default to allow piping
@@ -17,22 +18,48 @@ import (
 // ToDo: read up on info/debug logging
 // ToDo: read up on debugging/stepping-though code
 func main() {
-	if len(os.Args) < 2 {
-		fmt.Println("You need to pass the textual identifier as an argument.")
-		os.Exit(1)
-	}
-	identifier := os.Args[1]
-	identiconObj := identicon.New(identifier)
-	fileName := sanitize.BaseName(identifier)
-	outputPath, err := filepath.Abs(filepath.FromSlash("output/" + fileName + ".png"))
+	identifier, absOutputPath, complexityLevel, widthInPx := getCliArgs()
+
+	ydenticonObj := ydenticon.New(identifier)
+	err := ydenticonObj.SavePngToDisk(absOutputPath, complexityLevel, widthInPx)
 	exitIfErr(err)
 
-	err = identiconObj.SavePngToDisk(outputPath, identicon.ComplexityLevelMedium, 200)
-	exitIfErr(err)
-
-	fmt.Printf("Identicon was written to %s\n", outputPath)
+	fmt.Printf("Image was written to %s\n", absOutputPath)
 }
 
+// ToDo: add test
+func getCliArgs() (
+	identifier string,
+	absOutputPath string,
+	complexityLevel ydenticon.ComplexityLevel,
+	widthInPx uint,
+) {
+	// ToDo: do away with inbuilt flags. Find package to cleanly manage flexible arg-order and required args/flags
+	// ToDo: docopt vs. jessevdk/go-flags
+
+	flag.StringVar(&identifier, "id", "", "path and filename to output file")
+	fileName := *flag.String("output", sanitize.BaseName(identifier), "path and filename to output file")
+	absOutputPath, err := filepath.Abs(filepath.FromSlash("output/" + fileName + ".png"))
+	// // ToDo: add flag to create directory if not exists
+	fmt.Println(absOutputPath)
+	exitIfErr(err)
+
+	complexityLevel = ydenticon.ComplexityLevelMedium
+
+	widthInPx = 200
+
+	flag.Parse()
+
+	tail := flag.Args()
+	if len(tail) > 1 {
+		exitIfErr(fmt.Errorf("too many args after flag. Only one is accepted, but received %v", tail))
+		// ToDo: print proper CLI usage or help-page instead of this error
+	}
+
+	return
+}
+
+// ToDo: add test
 func exitIfErr(err error) {
 	if err != nil {
 		fmt.Println(err)

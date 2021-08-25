@@ -1,4 +1,4 @@
-module github.com/ymakhloufi/avatarme
+module github.com/ymakhloufi/ydenticon
 
 go 1.15
 
