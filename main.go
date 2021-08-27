@@ -55,10 +55,10 @@ Options:
   -c=<level> --complexity=<level>                           Result's level of complexity ( 1 | 2 | 3 | 4 | 5 ) [default: 3].
   -w=<widthInPx> --width=<widthInPx>                        Result image's width in pixels [default: 200].`
 
+	// ToDo: catch & treat errors returned by docopt
+
 	arguments, _ := docopt.ParseDoc(usage)
-
 	identifier, _ = arguments.String("<identifier>")
-
 	width, _ := arguments.Int("--width")
 	widthInPx = uint(width)
 
@@ -73,9 +73,8 @@ Options:
 		// ToDo: Find out why I can't assign 'os.Create' directly to 'output' (something about scoping of ':=' vs '=' ?)
 		overwriteExistingFiles, _ := arguments.Bool("overwrite")
 		if stat, err := os.Stat(outputPath); os.IsNotExist(err) || (overwriteExistingFiles && !stat.IsDir()) {
-			file, err := os.Create(outputPath)
+			output, err = os.Create(outputPath) // ToDo: read up on `go vet` to forbid var shadowing
 			ExitIfErr(err)
-			output = file
 		} else if stat.IsDir() {
 			ExitIfErr(fmt.Errorf("%s exists but. To overwrite use --overwrite flag", outputPath))
 		} else if err != nil {
