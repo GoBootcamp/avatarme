@@ -1,12 +1,10 @@
 package main
 
 import (
-	"flag"
 	"fmt"
 	"os"
-	"path/filepath"
 
-	"github.com/kennygrant/sanitize"
+	"github.com/docopt/docopt-go"
 
 	"github.com/ymakhloufi/ydenticon/ydenticon"
 )
@@ -18,49 +16,80 @@ import (
 // ToDo: read up on info/debug logging
 // ToDo: read up on debugging/stepping-though code
 func main() {
-	identifier, absOutputPath, complexityLevel, widthInPx := getCliArgs()
+	identifier, outputFilePtr, complexityLevel, widthInPx := getCliArgs()
+	defer func(file *os.File) {
+		if err := file.Close(); err != nil {
+			if _, printErr := fmt.Fprintln(os.Stderr, err); printErr != nil {
+				fmt.Println("error printing to STDERR: ", printErr, err)
+			}
+			os.Exit(1)
+		}
+	}(outputFilePtr)
 
 	ydenticonObj := ydenticon.New(identifier)
-	err := ydenticonObj.SavePngToDisk(absOutputPath, complexityLevel, widthInPx)
-	exitIfErr(err)
+	err := ydenticonObj.SavePngToDisk(outputFilePtr, complexityLevel, widthInPx)
+	ExitIfErr(err)
 
-	fmt.Printf("Image was written to %s\n", absOutputPath)
+	fmt.Printf("Image was written to %s\n", outputFilePtr.Name())
 }
 
 // ToDo: add test
 func getCliArgs() (
 	identifier string,
-	absOutputPath string,
+	output *os.File,
 	complexityLevel ydenticon.ComplexityLevel,
 	widthInPx uint,
 ) {
-	// ToDo: do away with inbuilt flags. Find package to cleanly manage flexible arg-order and required args/flags
-	// ToDo: docopt vs. jessevdk/go-flags
+	usage := `Ydention generates a unique avatar ("Identicon") based on a given unique string identifier.
 
-	flag.StringVar(&identifier, "id", "", "path and filename to output file")
-	fileName := *flag.String("output", sanitize.BaseName(identifier), "path and filename to output file")
-	absOutputPath, err := filepath.Abs(filepath.FromSlash("output/" + fileName + ".png"))
-	// // ToDo: add flag to create directory if not exists
-	fmt.Println(absOutputPath)
-	exitIfErr(err)
+Usage:
+  ydenticon <identifier> [--complexity=<level>] [width=<widthInPx>] [(--output=<filePathAndName> | --outputOverwrite=<filePathAndName>)]
+  ydenticon -h | --help
+  ydenticon --version
 
-	complexityLevel = ydenticon.ComplexityLevelMedium
+Options:
+  -h --help                                                 Show this screen.
+  -v --version                                              Show version.
+  -o=<filePathAndName> --output=<filePathAndName>           Path and file name of output file [default: <STDOUT>].
+  -O=<filePathAndName> --outputOverwrite=<filePathAndName>  Path and file name of output file (overwrite if exists).
+  -c=<level> --complexity=<level>                           Result's level of complexity ( 1 | 2 | 3 | 4 | 5 ) [default: 3].
+  -w=<widthInPx> --width=<widthInPx>                        Result image's width in pixels [default: 200].`
 
-	widthInPx = 200
+	arguments, _ := docopt.ParseDoc(usage)
 
-	flag.Parse()
+	identifier, _ = arguments.String("<identifier>")
 
-	tail := flag.Args()
-	if len(tail) > 1 {
-		exitIfErr(fmt.Errorf("too many args after flag. Only one is accepted, but received %v", tail))
-		// ToDo: print proper CLI usage or help-page instead of this error
+	width, _ := arguments.Int("--width")
+	widthInPx = uint(width)
+
+	complexityInt, _ := arguments.Int("--complexity")
+	complexityLevel, err := ydenticon.GetComplexityLevel(complexityInt)
+	ExitIfErr(err)
+
+	outputPath, _ := arguments.String("--output")
+	if outputPath == "<STDOUT>" {
+		output = os.Stdout
+	} else {
+		// ToDo: Find out why I can't assign 'os.Create' directly to 'output' (something about scoping of ':=' vs '=' ?)
+		overwriteExistingFiles, _ := arguments.Bool("overwrite")
+		if stat, err := os.Stat(outputPath); os.IsNotExist(err) || (overwriteExistingFiles && !stat.IsDir()) {
+			file, err := os.Create(outputPath)
+			ExitIfErr(err)
+			output = file
+		} else if stat.IsDir() {
+			ExitIfErr(fmt.Errorf("%s exists but. To overwrite use --overwrite flag", outputPath))
+		} else if err != nil {
+
+		} else {
+			ExitIfErr(fmt.Errorf("file %s exists. To overwrite use --overwrite flag", outputPath))
+		}
 	}
 
 	return
 }
 
-// ToDo: add test
-func exitIfErr(err error) {
+func ExitIfErr(err error) {
+	// ToDo: add test
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)

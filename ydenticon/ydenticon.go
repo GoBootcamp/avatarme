@@ -31,6 +31,20 @@ const (
 	ComplexityLevelUltra
 )
 
+func GetComplexityLevel(idx int) (ComplexityLevel, error) {
+	levels := [...]ComplexityLevel{
+		ComplexityLevelLowest,
+		ComplexityLevelLow,
+		ComplexityLevelMedium,
+		ComplexityLevelHigh,
+		ComplexityLevelUltra,
+	}
+	if idx > len(levels)-1 {
+		return 0, fmt.Errorf("the chosen level %d does not exist", idx)
+	}
+	return levels[idx], nil
+}
+
 type Ydenticon struct {
 	Identifier                       string
 	hashByteArray                    [32]byte
@@ -54,39 +68,33 @@ func New(identifier string) *Ydenticon {
 func getColorsFromBytes(r, g, b byte) (foregroundColor color.RGBA, backgroundColor color.RGBA) {
 	// http://stackoverflow.com/a/3943023/112731 (contrast-background black or white)
 	if (0.299*float32(int(r)) + 0.587*float32(int(g)) + 0.114*float32(int(b))) > 186 {
-		backgroundColor = color.RGBA{0, 0, 0, 0xff}
+		backgroundColor = color.RGBA{R: 0x00, G: 0x00, B: 0x00, A: 0xff}
 	} else {
-		backgroundColor = color.RGBA{0xff, 0xff, 0xff, 0xff}
+		backgroundColor = color.RGBA{R: 0xff, G: 0xff, B: 0xff, A: 0xff}
 	}
 
-	foregroundColor = color.RGBA{r, g, b, 0xff}
+	foregroundColor = color.RGBA{R: r, G: g, B: b, A: 0xff}
 	return foregroundColor, backgroundColor
 }
 
-func (i Ydenticon) SavePngToDisk(filePath string, level ComplexityLevel, widthInPx uint) error {
+func (i Ydenticon) SavePngToDisk(file *os.File, level ComplexityLevel, widthInPx uint) (err error) {
 	cols, rows := int(level), int(level) // slightly redundant, but we might want non-square-shaped images later.
 	elemSizeInPx := int(math.Ceil(float64(level) / float64(widthInPx)))
 	canvas := image.NewRGBA(
 		image.Rectangle{
-			image.Point{0, 0},
-			image.Point{elemSizeInPx * cols, elemSizeInPx * rows},
+			Min: image.Point{X: 0, Y: 0},
+			Max: image.Point{X: elemSizeInPx * cols, Y: elemSizeInPx * rows},
 		},
 	)
-	draw.Draw(canvas, canvas.Bounds(), &image.Uniform{i.backgroundColor}, image.Point{0, 0}, draw.Src)
+	draw.Draw(canvas, canvas.Bounds(), &image.Uniform{C: i.backgroundColor}, image.Point{X: 0, Y: 0}, draw.Src)
 	drawSquares(canvas, i.canvasBitSlice, i.foregroundColor, cols, rows, elemSizeInPx)
-
 	// Todo: ensure exact width by re-scaling png before writing to disk
 
-	file, err := os.Create(filePath)
-	if err != nil {
-		return fmt.Errorf("error opening/creating png file on disk %s: %v", filePath, err)
-	}
-
 	if err = png.Encode(file, canvas); err != nil {
-		return fmt.Errorf("error encoding png file %s: %v", filePath, err)
+		err = fmt.Errorf("error encoding png file %s: %v", file.Name(), err)
 	}
 
-	return nil
+	return err
 }
 
 func byteSliceToBoolSlice(bytes []byte) []bool {
@@ -115,21 +123,21 @@ func drawSquares(canvas *image.RGBA, bits []bool, color color.RGBA, cols, rows i
 				bitIndex++
 				continue
 			}
-			location := image.Point{x * elemSizeInPx, y * elemSizeInPx}
+			location := image.Point{X: x * elemSizeInPx, Y: y * elemSizeInPx}
 			rect := image.Rectangle{
-				location,
-				image.Point{location.X + elemSizeInPx, location.Y + elemSizeInPx},
+				Min: location,
+				Max: image.Point{location.X + elemSizeInPx, location.Y + elemSizeInPx},
 			}
-			draw.Draw(canvas, rect, &image.Uniform{color}, image.Point{0, 0}, draw.Src)
+			draw.Draw(canvas, rect, &image.Uniform{C: color}, image.Point{X: 0, Y: 0}, draw.Src)
 
 			// Don't mirror anything if we are working on the middle column if there is an uneven number of columns,
 			// since it would just copy the element onto itself (same coords) which is redundant work.
 			if cols%2 == 0 || x < middleColumn {
 				mirroredRect := image.Rectangle{
-					image.Point{elemSizeInPx*(cols-1) - location.X, location.Y},
-					image.Point{elemSizeInPx*cols - location.X, location.Y + elemSizeInPx},
+					Min: image.Point{X: elemSizeInPx*(cols-1) - location.X, Y: location.Y},
+					Max: image.Point{X: elemSizeInPx*cols - location.X, Y: location.Y + elemSizeInPx},
 				}
-				draw.Draw(canvas, mirroredRect, &image.Uniform{color}, image.Point{0, 0}, draw.Src)
+				draw.Draw(canvas, mirroredRect, &image.Uniform{C: color}, image.Point{X: 0, Y: 0}, draw.Src)
 			}
 			bitIndex++
 		}
