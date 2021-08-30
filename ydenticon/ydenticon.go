@@ -9,6 +9,8 @@ import (
 	"image/png"
 	"math"
 	"os"
+	"sync"
+	"time"
 )
 
 type ComplexityLevel uint8
@@ -116,30 +118,48 @@ func drawSquares(canvas *image.RGBA, bits []bool, color color.RGBA, cols, rows i
 	// only go through half of the columns and mirror the squares onto the second half
 	middleColumn := int(math.Ceil(float64(cols) / 2))
 
-	// ToDo: parallelize? Need a mutex on the canvas object? Can solve with GoRoutines even though resources are shared?
+	var wg sync.WaitGroup
 	for x := 0; x < middleColumn; x++ {
 		for y := 0; y < rows; y++ {
 			if !bits[bitIndex] {
 				bitIndex++
 				continue
 			}
-			location := image.Point{X: x * elemSizeInPx, Y: y * elemSizeInPx}
-			rect := image.Rectangle{
-				Min: location,
-				Max: image.Point{location.X + elemSizeInPx, location.Y + elemSizeInPx},
-			}
-			draw.Draw(canvas, rect, &image.Uniform{C: color}, image.Point{X: 0, Y: 0}, draw.Src)
+			wg.Add(1)
+			go drawOneSquare(&wg, canvas, x, y, elemSizeInPx, middleColumn, cols, color)
 
-			// Don't mirror anything if we are working on the middle column if there is an uneven number of columns,
-			// since it would just copy the element onto itself (same coords) which is redundant work.
-			if cols%2 == 0 || x < middleColumn {
-				mirroredRect := image.Rectangle{
-					Min: image.Point{X: elemSizeInPx*(cols-1) - location.X, Y: location.Y},
-					Max: image.Point{X: elemSizeInPx*cols - location.X, Y: location.Y + elemSizeInPx},
-				}
-				draw.Draw(canvas, mirroredRect, &image.Uniform{C: color}, image.Point{X: 0, Y: 0}, draw.Src)
-			}
 			bitIndex++
 		}
 	}
+
+	wg.Wait()
+}
+
+func drawOneSquare(
+	wg *sync.WaitGroup,
+	canvas *image.RGBA,
+	x, y, elemSizeInPx, middleColumn, cols int,
+	color color.RGBA,
+) {
+	defer wg.Done()
+	location := image.Point{X: x * elemSizeInPx, Y: y * elemSizeInPx}
+	rect := image.Rectangle{
+		Min: location,
+		Max: image.Point{location.X + elemSizeInPx, location.Y + elemSizeInPx},
+	}
+
+	draw.Draw(canvas, rect, &image.Uniform{C: color}, image.Point{X: 0, Y: 0}, draw.Src)
+
+	// Don't mirror anything if we are working on the middle column if there is an uneven number of columns,
+	// since it would just copy the element onto itself (same coords) which is redundant work.
+	if cols%2 == 0 || x < middleColumn {
+		mirroredRect := image.Rectangle{
+			Min: image.Point{X: elemSizeInPx*(cols-1) - location.X, Y: location.Y},
+			Max: image.Point{X: elemSizeInPx*cols - location.X, Y: location.Y + elemSizeInPx},
+		}
+		draw.Draw(canvas, mirroredRect, &image.Uniform{C: color}, image.Point{X: 0, Y: 0}, draw.Src)
+	}
+	// Time difference gets visible when you run this sequentially instead of inside a goroutine.
+	// This sleep should obviously be removed in a production system!
+	time.Sleep(10 * time.Millisecond)
 }
