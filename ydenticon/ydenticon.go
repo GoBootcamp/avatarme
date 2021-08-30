@@ -39,10 +39,10 @@ func GetComplexityLevel(idx int) (ComplexityLevel, error) {
 		ComplexityLevelHigh,
 		ComplexityLevelUltra,
 	}
-	if idx > len(levels)-1 {
+	if idx-1 > len(levels)-1 {
 		return 0, fmt.Errorf("the chosen level %d does not exist", idx)
 	}
-	return levels[idx], nil
+	return levels[idx-1], nil
 }
 
 type Ydenticon struct {
@@ -79,7 +79,7 @@ func getColorsFromBytes(r, g, b byte) (foregroundColor color.RGBA, backgroundCol
 
 func (i Ydenticon) SavePngToDisk(file *os.File, level ComplexityLevel, widthInPx uint) (err error) {
 	cols, rows := int(level), int(level) // slightly redundant, but we might want non-square-shaped images later.
-	elemSizeInPx := int(math.Ceil(float64(level) / float64(widthInPx)))
+	elemSizeInPx := int(math.Ceil(float64(widthInPx) / float64(level)))
 	canvas := image.NewRGBA(
 		image.Rectangle{
 			Min: image.Point{X: 0, Y: 0},
