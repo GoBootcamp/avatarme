@@ -6,11 +6,11 @@ import (
 	"image"
 	"image/color"
 	"image/draw"
-	"image/png"
 	"math"
-	"os"
 	"sync"
 	"time"
+
+	"github.com/nfnt/resize"
 )
 
 type ArtifactDimension uint8
@@ -80,24 +80,25 @@ func getColorsFromBytes(r, g, b byte) (foregroundColor color.RGBA, backgroundCol
 	return foregroundColor, backgroundColor
 }
 
-func (i Ydenticon) SavePngToDisk(file *os.File, dimension ArtifactDimension, widthInPx uint) (err error) {
+func (i Ydenticon) Make(dimension ArtifactDimension, widthInPx uint) (*image.RGBA, error) {
 	cols, rows := int(dimension), int(dimension) // slightly redundant, but we might want non-square-shaped images later.
 	artifactSizeInPx := int(math.Ceil(float64(widthInPx) / float64(dimension)))
-	canvas := image.NewRGBA(
+	canvasPtr := image.NewRGBA(
 		image.Rectangle{
 			Min: image.Point{X: 0, Y: 0},
 			Max: image.Point{X: artifactSizeInPx * cols, Y: artifactSizeInPx * rows},
 		},
 	)
-	draw.Draw(canvas, canvas.Bounds(), &image.Uniform{C: i.backgroundColor}, image.Point{X: 0, Y: 0}, draw.Src)
-	drawSquares(canvas, i.canvasBitSlice, i.foregroundColor, cols, rows, artifactSizeInPx)
-	// Todo: ensure exact width by re-scaling png before writing to disk
+	draw.Draw(canvasPtr, canvasPtr.Bounds(), &image.Uniform{C: i.backgroundColor}, image.Point{X: 0, Y: 0}, draw.Src)
+	drawSquares(canvasPtr, i.canvasBitSlice, i.foregroundColor, cols, rows, artifactSizeInPx)
 
-	if err = png.Encode(file, canvas); err != nil {
-		err = fmt.Errorf("error encoding png file %s: %v", file.Name(), err)
+	if resizedCanvas, ok := resize.Resize(widthInPx, widthInPx, canvasPtr, resize.Lanczos3).(*image.RGBA); ok == true {
+		canvasPtr = resizedCanvas
+	} else {
+		return canvasPtr, fmt.Errorf("failed extracting RGBA type from resized image: %v", resizedCanvas)
 	}
 
-	return err
+	return canvasPtr, nil
 }
 
 func byteSliceToBoolSlice(bytes []byte) []bool {

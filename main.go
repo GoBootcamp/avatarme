@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"image/png"
 	"os"
 	"time"
 
@@ -24,7 +25,10 @@ func main() {
 	identifier, outputFilePtr, artifactDimension, widthInPx := getCliArgs()
 	defer func(file *os.File) {
 		log.Debugf("Closing file %s", file.Name())
-		ExitIfErr(file.Close())
+		err := file.Close()
+		if err != nil {
+			ExitIfErr(fmt.Errorf("Failed to close file %s", file.Name()))
+		}
 	}(outputFilePtr)
 
 	log.Infof("Identifier:        %s", identifier)
@@ -36,8 +40,14 @@ func main() {
 	ydenticonObj := ydenticon.New(identifier)
 
 	log.Debugf("Writing output to %s", outputFilePtr.Name())
-	err := ydenticonObj.SavePngToDisk(outputFilePtr, artifactDimension, widthInPx)
-	ExitIfErr(err)
+	img, err := ydenticonObj.Make(artifactDimension, widthInPx)
+	if err != nil {
+		ExitIfErr(fmt.Errorf("fialed to make identicon: %v", err))
+	}
+
+	if err = png.Encode(outputFilePtr, img); err != nil {
+		ExitIfErr(fmt.Errorf("error encoding png file %s: %v", outputFilePtr.Name(), err))
+	}
 }
 
 // ToDo: add test
