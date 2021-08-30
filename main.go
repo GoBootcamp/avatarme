@@ -3,27 +3,40 @@ package main
 import (
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/docopt/docopt-go"
+	log "github.com/sirupsen/logrus"
 
 	"github.com/ymakhloufi/ydenticon/ydenticon"
 )
 
-// ToDo: read up on info/debug logging
+func init() {
+	log.SetLevel(log.DebugLevel)
+	log.SetFormatter(&log.TextFormatter{TimestampFormat: time.RFC3339, FullTimestamp: true})
+
+	// For SQL-style date-time, use this EXACTLY (cannot change digits): TimestampFormat: "2006-01-02 15:04:05"
+	// Explanation: https://golang.org/src/time/format.go
+}
+
 // ToDo: read up on debugging/stepping-though code
 func main() {
-	identifier, outputFilePtr, complexityLevel, widthInPx := getCliArgs()
+	identifier, outputFilePtr, artifactDimension, widthInPx := getCliArgs()
 	defer func(file *os.File) {
-		if err := file.Close(); err != nil {
-			if _, printErr := fmt.Fprintln(os.Stderr, err); printErr != nil {
-				fmt.Println("error printing to STDERR: ", printErr, err)
-			}
-			os.Exit(1)
-		}
+		log.Debugf("Closing file %s", file.Name())
+		ExitIfErr(file.Close())
 	}(outputFilePtr)
 
+	log.Infof("Identifier:        %s", identifier)
+	log.Infof("Output File:       %s", outputFilePtr.Name())
+	log.Infof("Complexity:        %d x %d artifacts", artifactDimension, artifactDimension)
+	log.Infof("Image Dimensions:  %d x %d Pixels", widthInPx, widthInPx)
+
+	log.Debug("Creating Ydenticon object")
 	ydenticonObj := ydenticon.New(identifier)
-	err := ydenticonObj.SavePngToDisk(outputFilePtr, complexityLevel, widthInPx)
+
+	log.Debugf("Writing output to %s", outputFilePtr.Name())
+	err := ydenticonObj.SavePngToDisk(outputFilePtr, artifactDimension, widthInPx)
 	ExitIfErr(err)
 }
 
@@ -31,7 +44,7 @@ func main() {
 func getCliArgs() (
 	identifier string,
 	output *os.File,
-	complexityLevel ydenticon.ComplexityLevel,
+	artifactDimension ydenticon.ArtifactDimension,
 	widthInPx uint,
 ) {
 	usage := `Ydention generates a unique avatar ("Identicon") based on a given unique string identifier.
@@ -51,22 +64,49 @@ Options:
 
 	// ToDo: figure out a better way to deal with many errors like this.
 
+	log.Debug("Parsing DocOpt string")
 	arguments, err := docopt.ParseDoc(usage)
 	ExitIfErr(err)
-	// panic(fmt.Sprintf("%v", arguments))
+	log.Debugf("Found These CLI args:\n%v", arguments)
 
+	log.Debugf("Parsing 'identifier' from CLI args")
 	identifier, err = arguments.String("<identifier>")
 	ExitIfErr(err)
+	log.Debugf("Found 'identifier' %s", identifier)
 
+	log.Debugf("Parsing 'width' from CLI args")
 	width, err := arguments.Int("--width")
 	ExitIfErr(err)
 	widthInPx = uint(width)
+	log.Debugf("Found 'width' %d", widthInPx)
 
+	log.Debugf("Parsing 'complexity' from CLI args")
 	complexityInt, err := arguments.Int("--complexity")
 	ExitIfErr(err)
-	complexityLevel, err = ydenticon.GetComplexityLevel(complexityInt)
-	ExitIfErr(err)
+	log.Debugf("Found 'complexity' %s", complexityInt)
 
+	log.Debug("Converting complexity level to image dimensions")
+	artifactDimension, err = ydenticon.GetComplexityLevel(complexityInt)
+	ExitIfErr(err)
+	log.Debugf(
+		"Computed Artifact Dimensions from Complexity Level %d: %dx%d artifacts",
+		complexityInt,
+		artifactDimension,
+		artifactDimension,
+	)
+
+	if widthInPx < uint(artifactDimension) {
+		ExitIfErr(
+			fmt.Errorf(
+				"image width %d is too small. It must be at least %d pixels for complexity level %d",
+				widthInPx,
+				artifactDimension,
+				complexityInt,
+			),
+		)
+	}
+
+	log.Debugf("Parsing 'output' from CLI args")
 	outputPath, err := arguments.String("--output")
 	ExitIfErr(err)
 	if outputPath == "<STDOUT>" {
@@ -84,14 +124,16 @@ Options:
 			ExitIfErr(fmt.Errorf("file %s exists. To overwrite use the --overwrite flag", outputPath))
 		}
 	}
+	log.Debugf("Found 'output' %s", output.Name())
 
 	return
 }
 
 func ExitIfErr(err error) {
 	// ToDo: add test
+	// https://stackoverflow.com/questions/26225513/how-to-test-os-exit-scenarios-in-go
 	if err != nil {
-		println(fmt.Sprintf("%v\n", err))
+		log.Fatalf("%v\n", err)
 		os.Exit(1)
 	}
 }

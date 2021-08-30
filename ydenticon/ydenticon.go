@@ -13,7 +13,7 @@ import (
 	"time"
 )
 
-type ComplexityLevel uint8
+type ArtifactDimension uint8
 
 const (
 	// ComplexityLevelLowest ComplexityLevelLow ComplexityLevelMedium ComplexityLevelHigh ComplexityLevelUltra
@@ -26,25 +26,26 @@ const (
 	 * High:   13x13 = Ceil(13/2) * 13 = 91 bits
 	 * Ultra:  21x21 = Ceil(21/2) * 21 = 231 bits
 	 */
-	ComplexityLevelLowest ComplexityLevel = 5 + (1 << iota)
+	ComplexityLevelLowest ArtifactDimension = 5 + (1 << iota)
 	ComplexityLevelLow
 	ComplexityLevelMedium
 	ComplexityLevelHigh
 	ComplexityLevelUltra
 )
 
-func GetComplexityLevel(idx int) (ComplexityLevel, error) {
-	levels := [...]ComplexityLevel{
+func GetComplexityLevel(level int) (ArtifactDimension, error) {
+	levels := [...]ArtifactDimension{
 		ComplexityLevelLowest,
 		ComplexityLevelLow,
 		ComplexityLevelMedium,
 		ComplexityLevelHigh,
 		ComplexityLevelUltra,
 	}
-	if idx-1 > len(levels)-1 {
-		return 0, fmt.Errorf("the chosen level %d does not exist", idx)
+	index := level - 1
+	if index > len(levels)-1 || index < 0 {
+		return 0, fmt.Errorf("the chosen complexity level %d does not exist, Try 1-5", level)
 	}
-	return levels[idx-1], nil
+	return levels[index], nil
 }
 
 type Ydenticon struct {
@@ -79,17 +80,17 @@ func getColorsFromBytes(r, g, b byte) (foregroundColor color.RGBA, backgroundCol
 	return foregroundColor, backgroundColor
 }
 
-func (i Ydenticon) SavePngToDisk(file *os.File, level ComplexityLevel, widthInPx uint) (err error) {
-	cols, rows := int(level), int(level) // slightly redundant, but we might want non-square-shaped images later.
-	elemSizeInPx := int(math.Ceil(float64(widthInPx) / float64(level)))
+func (i Ydenticon) SavePngToDisk(file *os.File, dimension ArtifactDimension, widthInPx uint) (err error) {
+	cols, rows := int(dimension), int(dimension) // slightly redundant, but we might want non-square-shaped images later.
+	artifactSizeInPx := int(math.Ceil(float64(widthInPx) / float64(dimension)))
 	canvas := image.NewRGBA(
 		image.Rectangle{
 			Min: image.Point{X: 0, Y: 0},
-			Max: image.Point{X: elemSizeInPx * cols, Y: elemSizeInPx * rows},
+			Max: image.Point{X: artifactSizeInPx * cols, Y: artifactSizeInPx * rows},
 		},
 	)
 	draw.Draw(canvas, canvas.Bounds(), &image.Uniform{C: i.backgroundColor}, image.Point{X: 0, Y: 0}, draw.Src)
-	drawSquares(canvas, i.canvasBitSlice, i.foregroundColor, cols, rows, elemSizeInPx)
+	drawSquares(canvas, i.canvasBitSlice, i.foregroundColor, cols, rows, artifactSizeInPx)
 	// Todo: ensure exact width by re-scaling png before writing to disk
 
 	if err = png.Encode(file, canvas); err != nil {
@@ -113,7 +114,7 @@ func byteSliceToBoolSlice(bytes []byte) []bool {
 // This only fills the left half of the canvas and mirrors it to the right half
 // which reduces the bits needed (and thus uniqueness-per-surface-area)
 // but makes it significantly more human-recognizable.
-func drawSquares(canvas *image.RGBA, bits []bool, color color.RGBA, cols, rows int, elemSizeInPx int) {
+func drawSquares(canvas *image.RGBA, bits []bool, color color.RGBA, cols, rows int, artifactSizeInPx int) {
 	bitIndex := 0
 	// only go through half of the columns and mirror the squares onto the second half
 	middleColumn := int(math.Ceil(float64(cols) / 2))
@@ -126,7 +127,7 @@ func drawSquares(canvas *image.RGBA, bits []bool, color color.RGBA, cols, rows i
 				continue
 			}
 			wg.Add(1)
-			go drawOneSquare(&wg, canvas, x, y, elemSizeInPx, middleColumn, cols, color)
+			go drawOneSquare(&wg, canvas, x, y, artifactSizeInPx, middleColumn, cols, color)
 
 			bitIndex++
 		}
@@ -138,24 +139,24 @@ func drawSquares(canvas *image.RGBA, bits []bool, color color.RGBA, cols, rows i
 func drawOneSquare(
 	wg *sync.WaitGroup,
 	canvas *image.RGBA,
-	x, y, elemSizeInPx, middleColumn, cols int,
+	x, y, artifactSizeInPx, middleColumn, cols int,
 	color color.RGBA,
 ) {
 	defer wg.Done()
-	location := image.Point{X: x * elemSizeInPx, Y: y * elemSizeInPx}
+	location := image.Point{X: x * artifactSizeInPx, Y: y * artifactSizeInPx}
 	rect := image.Rectangle{
 		Min: location,
-		Max: image.Point{location.X + elemSizeInPx, location.Y + elemSizeInPx},
+		Max: image.Point{location.X + artifactSizeInPx, location.Y + artifactSizeInPx},
 	}
 
 	draw.Draw(canvas, rect, &image.Uniform{C: color}, image.Point{X: 0, Y: 0}, draw.Src)
 
 	// Don't mirror anything if we are working on the middle column if there is an uneven number of columns,
-	// since it would just copy the element onto itself (same coords) which is redundant work.
+	// since it would just copy the artifact onto itself (same coords) which is redundant work.
 	if cols%2 == 0 || x < middleColumn {
 		mirroredRect := image.Rectangle{
-			Min: image.Point{X: elemSizeInPx*(cols-1) - location.X, Y: location.Y},
-			Max: image.Point{X: elemSizeInPx*cols - location.X, Y: location.Y + elemSizeInPx},
+			Min: image.Point{X: artifactSizeInPx*(cols-1) - location.X, Y: location.Y},
+			Max: image.Point{X: artifactSizeInPx*cols - location.X, Y: location.Y + artifactSizeInPx},
 		}
 		draw.Draw(canvas, mirroredRect, &image.Uniform{C: color}, image.Point{X: 0, Y: 0}, draw.Src)
 	}
