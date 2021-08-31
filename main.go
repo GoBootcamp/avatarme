@@ -20,7 +20,6 @@ func init() {
 	// Explanation: https://golang.org/src/time/format.go
 }
 
-// ToDo: read up on debugging/stepping-though code
 func main() {
 	identifier, outputFilePtr, artifactDimension, widthInPx := getCliArgs()
 	defer func(file *os.File) {
@@ -125,8 +124,8 @@ Options:
 		// ToDo: Find out why I can't assign 'os.Create' directly to 'output' (something about scoping of ':=' vs '=' ?)
 		overwriteExistingFiles, err := arguments.Bool("--overwriteExistingFile")
 		ExitIfErr(err)
-		if os.IsNotExist(err) || overwriteExistingFiles {
-			output, err = os.Create(outputPath) // ToDo: read up on `go vet` to forbid var-shadowing
+		if _, err = os.Stat(outputPath); os.IsNotExist(err) || overwriteExistingFiles {
+			output, err = os.Create(outputPath)
 			ExitIfErr(err)
 		} else if err != nil {
 			ExitIfErr(err) // other error resulting from os.stat()
