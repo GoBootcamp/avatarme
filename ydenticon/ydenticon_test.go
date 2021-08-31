@@ -5,11 +5,10 @@ import (
 	"math/rand"
 	"testing"
 
-	"github.com/google/go-cmp/cmp"
+	"github.com/stretchr/testify/assert"
 )
 
 // ToDo: read up on mocking, write unit test(s) for drawSquares()
-// ToDo: read up on assertion frameworks, rewrite tests with such to make more concise/legible.
 
 func TestByteSliceToBoolSlice(t *testing.T) {
 	testData := []struct {
@@ -34,15 +33,8 @@ func TestByteSliceToBoolSlice(t *testing.T) {
 
 	for _, data := range testData {
 		result := byteSliceToBoolSlice(data.input)
-		if len(result) != len(data.expect) {
-			t.Errorf("length of input was %d, expected %d", len(result), len(data.expect))
-		}
-
-		for k, v := range data.expect {
-			if v != result[k] {
-				t.Errorf("%v, was expected to be %v", result, data.expect)
-			}
-		}
+		assert.Equal(t, len(data.expect), len(result))
+		assert.Equal(t, data.expect, result)
 	}
 }
 
@@ -52,9 +44,7 @@ func TestGetColorsFromBytesReturnsSameValuesAsForegroundColor(t *testing.T) {
 		r, g, b := byte(rand.Intn(255)), byte(rand.Intn(255)), byte(rand.Intn(255))
 		expectedColor := color.RGBA{r, g, b, 0xff}
 		result, _ := getColorsFromBytes(r, g, b)
-		if !cmp.Equal(result, expectedColor) {
-			t.Errorf("Foreground color was %#v, expected %#v", result, expectedColor)
-		}
+		assert.Equal(t, expectedColor, result)
 	}
 }
 
@@ -84,8 +74,6 @@ func TestGetColorsFromBytesReturnsCorrectBackgroundColor(t *testing.T) {
 	}
 	for _, data := range testData {
 		_, result := getColorsFromBytes(data.input.r, data.input.g, data.input.b)
-		if !cmp.Equal(data.expect, result) {
-			t.Errorf("Foreground color was %#v, expected %#v", result, data.expect)
-		}
+		assert.Equal(t, data.expect, result)
 	}
 }

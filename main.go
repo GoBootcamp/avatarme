@@ -71,7 +71,7 @@ Options:
   -c, --complexity=<level>                 Result's level of complexity ( 1 | 2 | 3 | 4 | 5 ) [default: 3].
   -w, --width=<widthInPx>                  Result image's width in pixels [default: 200].`
 
-	// ToDo: figure out a better way to deal with many errors like this.
+	// ToDo: figure out a better way to deal with many errors, other than tons of ExitIfErr(err) calls
 
 	log.Debug("Parsing DocOpt string")
 	arguments, err := docopt.ParseDoc(usage)
@@ -92,7 +92,7 @@ Options:
 	log.Debugf("Parsing 'complexity' from CLI args")
 	complexityInt, err := arguments.Int("--complexity")
 	ExitIfErr(err)
-	log.Debugf("Found 'complexity' %s", complexityInt)
+	log.Debugf("Found 'complexity' %d", complexityInt)
 
 	log.Debug("Converting complexity level to image dimensions")
 	artifactDimension, err = ydenticon.GetComplexityLevel(complexityInt)
