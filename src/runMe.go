@@ -5,7 +5,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"image"
-	"image/color/palette"
+	"image/color"
 	"image/png"
 	"os"
 )
@@ -15,13 +15,13 @@ func main() {
 	userHash := getHash()
 	fmt.Println("The hashed value is: ", userHash)
 
-	// bw := []color.Color{color.Black, color.White}
-	// fmt.Println(bw)
-
+	//hashSize := len(userHash) // 88 for sha 512
+	bw := []color.Color{color.Black, color.White}
 	outputImage := image.NewPaletted(
 		image.Rect(0, 0, 100, 200),
-		palette.WebSafe,
+		bw,
 	)
+
 	writeImage(outputImage)
 	//outputPath := time.Now().Format("01-02-2006 15:04:05") + ".png"
 
@@ -29,6 +29,7 @@ func main() {
 	// make an image of the hash of the IP address
 	// save to file?
 }
+
 func writeImage(outputImage *image.Paletted) {
 
 	outputPath := "identicon.png"
