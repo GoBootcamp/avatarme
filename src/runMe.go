@@ -19,9 +19,10 @@ func main() {
 	// 64 for sha 256
 	hashSize := len(userHash)
 	gridWidth := 8
+	scale := 40
 	bw := []color.Color{color.Black, color.White}
 	outputImage := image.NewPaletted(
-		image.Rect(0, 0, gridWidth, gridWidth),
+		image.Rect(0, 0, gridWidth*scale, gridWidth*scale),
 		bw,
 	)
 
@@ -31,12 +32,11 @@ func main() {
 
 		// row = index % width
 		// i ==10 corresponds to row 1, cell 2
-		x := i / gridWidth
-		y := i % gridWidth
-		fmt.Println(x, y, myColor, hashValue)
+		x := (i / gridWidth) * scale
+		y := (i % gridWidth) * scale
 
 		start := image.Point{x, y}
-		end := image.Point{x + 1, y + 1}
+		end := image.Point{x + scale, y + scale}
 		rectangle := image.Rectangle{start, end}
 		draw.Draw(outputImage, rectangle, &image.Uniform{myColor}, image.Point{}, draw.Src)
 	}
@@ -73,15 +73,3 @@ func getHash() []byte {
 	//return sha
 	return hasher.Sum(nil)
 }
-
-/**
-import (
-    "image"
-)
-func main() {
-    myImg := image.NewRGBA(image.Rect(0, 0, 12, 6))
-        out, err := os.Create("cat.png")
-        png.Encode(out, myImg)
-        out.Close()
-}
-*/
