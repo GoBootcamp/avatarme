@@ -16,12 +16,13 @@ func main() {
 	userHash := getHash()
 	fmt.Println("The hashed value is: ", base64.URLEncoding.EncodeToString(userHash))
 
-	// 64
+	// 64 for sha 256
 	hashSize := len(userHash)
 	gridWidth := 8
+	scale := 10
 	bw := []color.Color{color.Black, color.White}
 	outputImage := image.NewPaletted(
-		image.Rect(0, 0, gridWidth, gridWidth),
+		image.Rect(0, 0, gridWidth*scale, gridWidth*scale),
 		bw,
 	)
 
@@ -29,29 +30,17 @@ func main() {
 		hashValue := userHash[i]
 		myColor := bw[hashValue%2]
 
-		//row = index % width
+		// row = index % width
 		// i ==10 corresponds to row 1, cell 2
 		x := i / gridWidth
 		y := i % gridWidth
 		fmt.Println(x, y, myColor, hashValue)
 
-		start := image.Point{x, y}
-		end := image.Point{x + 1, y + 1}
+		start := image.Point{x * scale, y * scale}
+		end := image.Point{x + scale, y + scale}
 		rectangle := image.Rectangle{start, end}
 		draw.Draw(outputImage, rectangle, &image.Uniform{myColor}, image.Point{}, draw.Src)
 	}
-
-	// 	for j := 0; j < hashSize; j++ {
-	// 		// for each space in the image, draw a pixel
-	// 		hashValue := userHash[(hashSize-1)%(i+j+1)]
-	// 		myColor := bw[hashValue%2]
-
-	// 		start := image.Point{i, j}
-	// 		end := image.Point{i + 20, j + 20}
-	// 		rectangle := image.Rectangle{start, end}
-	// 		draw.Draw(outputImage, rectangle, &image.Uniform{myColor}, image.Point{}, draw.Src)
-	// 	}
-	// }
 
 	writeImage(outputImage)
 
