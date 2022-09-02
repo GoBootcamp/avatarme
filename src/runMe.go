@@ -19,10 +19,9 @@ func main() {
 	// 64 for sha 256
 	hashSize := len(userHash)
 	gridWidth := 8
-	scale := 10
 	bw := []color.Color{color.Black, color.White}
 	outputImage := image.NewPaletted(
-		image.Rect(0, 0, gridWidth*scale, gridWidth*scale),
+		image.Rect(0, 0, gridWidth, gridWidth),
 		bw,
 	)
 
@@ -36,8 +35,8 @@ func main() {
 		y := i % gridWidth
 		fmt.Println(x, y, myColor, hashValue)
 
-		start := image.Point{x * scale, y * scale}
-		end := image.Point{x + scale, y + scale}
+		start := image.Point{x, y}
+		end := image.Point{x + 1, y + 1}
 		rectangle := image.Rectangle{start, end}
 		draw.Draw(outputImage, rectangle, &image.Uniform{myColor}, image.Point{}, draw.Src)
 	}
