@@ -31,7 +31,7 @@ func main() {
 //
 // Given a user hash, creates an associated image
 func createImage(userHash []byte) *image.Paletted {
-	// 64 for sha 256
+	// 64 for sha 512.
 	hashSize := len(userHash)
 	gridWidth := 8
 	scale := 40
