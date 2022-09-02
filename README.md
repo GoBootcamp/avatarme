@@ -21,3 +21,9 @@ gravatar account attached.
 * http://golang.org/pkg/image/
 * http://en.wikipedia.org/wiki/Identicon
 * http://haacked.com/archive/2007/01/22/Identicons_as_Visual_Fingerprints.aspx/
+
+## To run the solution
+
+* From the src directory, type `go run .`
+* When prompted, enter the unique personal information (email, IP address)
+* Files are outputted in the same working directory, under the name `identicon.png`

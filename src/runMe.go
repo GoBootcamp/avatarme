@@ -11,11 +11,26 @@ import (
 	"os"
 )
 
+// main
+//
+// from the src directory, type 'go run .'
+// when prompted, enter the unique personal information (email, IP address)
+// files are outputted in the same working directory, under the name identicon.png
 func main() {
 	// make a hash of the personal info
 	userHash := getHash()
-	fmt.Println("The hashed value is: ", base64.URLEncoding.EncodeToString(userHash))
 
+	// create the image
+	outputImage := createImage(userHash)
+
+	// for the purposes of this PR, write image to the disk
+	writeImage(outputImage)
+}
+
+// createImage
+//
+// Given a user hash, creates an associated image
+func createImage(userHash []byte) *image.Paletted {
 	// 64 for sha 256
 	hashSize := len(userHash)
 	gridWidth := 8
@@ -40,13 +55,12 @@ func main() {
 		rectangle := image.Rectangle{start, end}
 		draw.Draw(outputImage, rectangle, &image.Uniform{myColor}, image.Point{}, draw.Src)
 	}
-
-	writeImage(outputImage)
-
-	// TODO:
-	// make an image of the hash of the IP address
+	return outputImage
 }
 
+// writeImage
+//
+// Writes out the image to a hard-coded location on disk, named identicon.png
 func writeImage(outputImage *image.Paletted) {
 
 	outputPath := "identicon.png"
@@ -56,9 +70,13 @@ func writeImage(outputImage *image.Paletted) {
 		return
 	}
 	png.Encode(out, outputImage)
-	out.Close()
+	defer out.Close()
 	fmt.Println("identicon written to ", outputPath)
 }
+
+// getHash
+//
+// Returns the hash from a user
 func getHash() []byte {
 	// get a string (eg IP address, email)
 	fmt.Println("Enter Your Personal Information: ")
@@ -68,8 +86,7 @@ func getHash() []byte {
 	hasher := sha512.New()
 	bv := []byte(personalInfo)
 	hasher.Write(bv)
-
-	//sha := base64.URLEncoding.EncodeToString(hasher.Sum(nil))
-	//return sha
-	return hasher.Sum(nil)
+	userHash := hasher.Sum(nil)
+	fmt.Println("The hashed value is: ", base64.URLEncoding.EncodeToString(userHash))
+	return userHash
 }
